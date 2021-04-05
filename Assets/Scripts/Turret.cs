@@ -2,12 +2,20 @@
 
 public class Turret : MonoBehaviour
 {
+    private Transform target;
+    
+    [Header("Attributes")]
     public float range = 15;
+    public float FireRate = 1f;
+    private float fireCountdown = 0f;
+
+    [Header("Unity Setup Fields")]
+    public float TurnSpeed = 10f;
     public string EnemyTag = "Enemy";
     public Transform PartToRotate;
-    public float TurnSpeed = 10f;
 
-    private Transform Target;
+    public GameObject BulletPrefab;
+    public Transform FirePoint;
 
     private void Start()
     {
@@ -16,16 +24,35 @@ public class Turret : MonoBehaviour
 
     private void Update()
     {
-        if(Target == null)
+        if(target == null)
         {
             return;
         }
 
         //Target lock on
-        Vector3 direction = Target.position - transform.position;
+        Vector3 direction = target.position - transform.position;
         Quaternion lookRotation = Quaternion.LookRotation(direction);
         Vector3 rotation = Quaternion.Lerp(PartToRotate.rotation, lookRotation, Time.deltaTime * TurnSpeed).eulerAngles;
         PartToRotate.rotation = Quaternion.Euler(0f, rotation.y, 0f);
+
+        if(fireCountdown <= 0f)
+        {
+            Shoot();
+            fireCountdown = 1f / FireRate;
+        }
+
+        fireCountdown -= Time.deltaTime;
+    }
+
+    private void Shoot()
+    {
+        GameObject BulletGameObject = (GameObject)Instantiate(BulletPrefab, FirePoint.position, FirePoint.rotation);
+        Bullet bullet = BulletGameObject.GetComponent<Bullet>();
+
+        if(bullet != null)
+        {
+            bullet.Seek(target);
+        }
     }
 
     private void UpdateTarget()
@@ -46,11 +73,11 @@ public class Turret : MonoBehaviour
 
         if(nearestEnemy != null && shortestDistance <= range)
         {
-            Target = nearestEnemy.transform;
+            target = nearestEnemy.transform;
         }
         else
         {
-            Target = null;
+            target = null;
         }
     }
     private void OnDrawGizmosSelected()
